@@ -12,7 +12,7 @@ class Ship(object):
 		self.rate_rudder_change = 2.0       # degrees / second
 		self.rate_course_change = 0.02      # degrees / (knots_of_speed * degrees_of_rudder * second)
 		self.time_rudder_ease = 5.0         # seconds looking ahead to reduce turn rate to not overshoot desired course
-		self.rudder_angle_reduction_factor = 1.5        # factor by which rudder angle is reduced when overshoot is approaching
+		self.rudder_angle_reduction_factor = 2        # factor by which rudder angle is reduced when overshoot is approaching
 
 	@staticmethod
 	def correct_360_math(number_of_degrees):        # corrects for 359 + 1 degrees = 0 degrees, etc.
@@ -40,12 +40,24 @@ class Ship(object):
 		self.speed_ordered = new_speed
 
 	def change_rudder_angle(self):      # increases and decreases rudder angle to enter and exit turns
+		# first determine the number of seconds until there is an overshoot of desired course
 		if self.rudder_angle != 0:
 			seconds_to_overshoot = self.correct_180_math(self.course_ordered - self.course) / (self.speed*self.rudder_angle*self.rate_course_change)        # number of seconds at current turn rate until ship overshoots turn
 		else:
 			seconds_to_overshoot = 999      # dummy entry for very large number, avoids divide by zero when rudder angle = 0
-		if seconds_to_overshoot < self.time_rudder_ease:
-			self.rudder_angle = self.rudder_angle / self.rudder_angle_reduction_factor
+		if seconds_to_overshoot < self.time_rudder_ease and seconds_to_overshoot > 0: # overshoot will happen soon
+			# rudder_option1 is reducing rudder angle gradually while approaching desired course
+			rudder_option1 = self.rudder_angle / self.rudder_angle_reduction_factor
+			# rudder_option2 is reducing rudder deflection (i.e. abs(angle)) by standard amount
+			if self.rudder_angle_ordered > self.rudder_angle:
+				rudder_option2 = self.rudder_angle + self.rate_rudder_change*(self.rudder_angle/abs(self.rudder_angle))
+			else:
+				rudder_option2 = self.rudder_angle - self.rate_rudder_change*(self.rudder_angle/abs(self.rudder_angle))
+			# now, to pick a new rudder angle that does no violate the maximum speed of changing rudder angle
+			if abs(self.rudder_angle - rudder_option1) < abs(self.rudder_angle - rudder_option2):
+				self.rudder_angle = rudder_option1
+			else:
+				self.rudder_angle = rudder_option2
 			self.rudder_angle_ordered = self.rudder_angle
 		elif self.rudder_angle != self.rudder_angle_ordered and abs(self.rudder_angle - self.rudder_angle_ordered) >= self.rate_rudder_change: # increase abs(rudder_angle) to increase turn rate
 			if self.rudder_angle_ordered > self.rudder_angle:
