@@ -41,7 +41,7 @@ class Ship(object):
 
 	def change_rudder_angle(self):      # increases and decreases rudder angle to enter and exit turns
 		# first determine the number of seconds until there is an overshoot of desired course
-		if self.rudder_angle != 0:
+		if self.rudder_angle != 0 and self.course_ordered != 999:       # self.course_ordered = 999 for no new course ordered (i.e. "rudder in hand")
 			seconds_to_overshoot = self.correct_180_math(self.course_ordered - self.course) / (self.speed*self.rudder_angle*self.rate_course_change)        # number of seconds at current turn rate until ship overshoots turn
 		else:
 			seconds_to_overshoot = 999      # dummy entry for very large number, avoids divide by zero when rudder angle = 0
